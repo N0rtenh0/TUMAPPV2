@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "798154085112",
+    "project_id": "tumapp-a8c23",
+    "storage_bucket": "tumapp-a8c23.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798154085112:android:2e501a5214fb517b89610d",
+        "android_client_info": {
+          "package_name": "com.example.tumapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798154085112-s1hd0oh21lm7clkkc3sm8egc7hog2qq1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBt7cfRr7pmTj3SPKrhoGCGbss6_3o3Ij0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798154085112-s1hd0oh21lm7clkkc3sm8egc7hog2qq1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798154085112:android:ecf2e4a2601b6b8989610d",
+        "android_client_info": {
+          "package_name": "pt.umaia.tumappv2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798154085112-s1hd0oh21lm7clkkc3sm8egc7hog2qq1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBt7cfRr7pmTj3SPKrhoGCGbss6_3o3Ij0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798154085112-s1hd0oh21lm7clkkc3sm8egc7hog2qq1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
