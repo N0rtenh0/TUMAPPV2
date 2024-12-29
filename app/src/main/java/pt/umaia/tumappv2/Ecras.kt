@@ -1,5 +1,6 @@
 package pt.umaia.tumappv2
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,23 +39,42 @@ fun Ecra03(
 ) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    val userId = "user123" // Replace with actual user ID
+    val userId = "teste" // Replace with actual user ID
+    val username = remember { mutableStateOf("") } // To store the username
     val isGoing = remember { mutableStateOf(false) }
     val goingCount = remember { mutableStateOf(0) }
+
+    // Fetch the username from Firestore
+    LaunchedEffect(userId) {
+        db.collection("users")
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { result ->
+                val userDoc = result.documents.firstOrNull()
+                if (userDoc != null) {
+                    val name = userDoc.getString("username") ?: "Unknown User"
+                    username.value = name
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Erro ao carregar o nome de usuário.", Toast.LENGTH_SHORT).show()
+            }
+    }
 
     // Fetch Firestore data on screen load
     LaunchedEffect(Unit) {
         db.collection("atuacoes")
             .get()
             .addOnSuccessListener { result ->
-                val events = result.documents.joinToString("\n") { doc ->
+                val events = result.documents.map { doc ->
                     val dia = doc.getString("Dia") ?: "N/A"
                     val local = doc.getString("Local") ?: "N/A"
                     val tipo = doc.getString("Tipo de atuação") ?: "N/A"
-
-                    "\n Dia: $dia \n Local: $local \n Tipo de atuação: $tipo"
+                    // Return a string representing each event's details
+                    "$dia - $local - $tipo"
                 }
-                listA.value = events
+                // Update listA with the events
+                listA.value = events.joinToString("\n") { it }
             }
             .addOnFailureListener {
                 listA.value = "Erro ao carregar dados."
@@ -70,7 +90,9 @@ fun Ecra03(
             text = stringResource(id = R.string.ecra03),
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .background(Color.White),
             textAlign = TextAlign.Center,
             fontSize = 18.sp
         )
@@ -78,7 +100,7 @@ fun Ecra03(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = listA.value,
+            text = "Olá, ${username.value}",
             fontSize = 16.sp,
             color = Color.Black,
             modifier = Modifier.padding(8.dp)
@@ -86,48 +108,33 @@ fun Ecra03(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!isGoing.value) {
+        // Iterate over each event and create a button for it
+        val eventsList = listA.value.split("\n").filter { it.isNotBlank() }
+        eventsList.forEach { event ->
             Button(
                 onClick = {
+                    // Logic for confirming or canceling presence can be added here
                     val eventData = mapOf(
-                        "userId" to userId,
+                        "username" to username.value, // Use the username here
                         "timestamp" to System.currentTimeMillis()
                     )
 
+                    // Add event reaction to Firestore
                     db.collection("reactions")
                         .add(eventData)
                         .addOnSuccessListener {
                             goingCount.value++
-                            isGoing.value = true
-                            Toast.makeText(context, "Confirmado! Você está indo.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Confirmado para o evento: $event", Toast.LENGTH_SHORT).show()
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Erro ao confirmar presença.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Erro ao confirmar presença para o evento.", Toast.LENGTH_SHORT).show()
                         }
                 }
             ) {
-                Text(text = "Confirmar Presença")
+                Text(text = "Confirmar Presença para $event")
             }
-        } else {
-            Button(
-                onClick = {
-                    db.collection("reactions")
-                        .whereEqualTo("userId", userId)
-                        .get()
-                        .addOnSuccessListener { result ->
-                            result.documents.firstOrNull()?.reference?.delete()?.addOnSuccessListener {
-                                goingCount.value--
-                                isGoing.value = false
-                                Toast.makeText(context, "Você cancelou sua presença.", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        .addOnFailureListener {
-                            Toast.makeText(context, "Erro ao cancelar presença.", Toast.LENGTH_SHORT).show()
-                        }
-                }
-            ) {
-                Text(text = "Cancelar Presença")
-            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -164,7 +171,9 @@ fun Ecra04(
             text = stringResource(id = R.string.ecra04),
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .background(Color.White),
             textAlign = TextAlign.Center,
             fontSize = 18.sp
         )
@@ -174,7 +183,7 @@ fun Ecra04(
         TextField(
             value = Dias.value,
             onValueChange = { Dias.value = it },
-            label = { Text("Insira o Dia da Atuação") },
+            label = { Text("Insira o Dia da Atuação",color = Color.Black) },
             modifier = Modifier.fillMaxWidth(0.8f)
         )
 
@@ -183,20 +192,20 @@ fun Ecra04(
         TextField(
             value = Local.value,
             onValueChange = { Local.value = it },
-            label = { Text("Insira o Local da Atuação") },
+            label = { Text("Insira o Local da Atuação",color = Color.Black) },
             modifier = Modifier.fillMaxWidth(0.8f)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = "Tipo de atuação:")
+        Text(text = "Tipo de atuação:",color = Color.Black)
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
                 selected = selectedOption.value == option1Text.value,
                 onClick = { selectedOption.value = option1Text.value }
             )
-            Text(text = option1Text.value)
+            Text(text = option1Text.value,color = Color.Black)
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -204,7 +213,7 @@ fun Ecra04(
                 selected = selectedOption.value == option2Text.value,
                 onClick = { selectedOption.value = option2Text.value }
             )
-            Text(text = option2Text.value)
+            Text(text = option2Text.value,color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.Firebase
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -70,10 +72,11 @@ fun EcraRegisterToFirebase(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(16.dp)
     ) {
         Text(
-            text = stringResource(id = R.string.firebase_login_title),
+            text = stringResource(id = R.string.firebase_register_title),
             fontSize = 24.sp,
             color = Color.Black
         )
@@ -90,7 +93,9 @@ fun EcraRegisterToFirebase(navController: NavController) {
                 email = it
                 emailError.value = !isValidEmail(it)
             },
-            label = { Text(text = stringResource(id = R.string.firebase_enter_email)) },
+            label = { Text(text = stringResource(id = R.string.firebase_enter_email),color = Color.Black)
+                    },
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
             isError = emailError.value,
             modifier = Modifier.fillMaxWidth()
@@ -113,8 +118,9 @@ fun EcraRegisterToFirebase(navController: NavController) {
                 password = it
                 passwordError.value = !isValidPassword(it)
             },
-            label = { Text(text = stringResource(id= R.string.firebase_enter_password)) },
+            label = { Text(text = stringResource(id= R.string.firebase_enter_password),color = Color.Black) },
             visualTransformation = PasswordVisualTransformation(),
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             isError = passwordError.value,
             modifier = Modifier.fillMaxWidth()
@@ -126,8 +132,9 @@ fun EcraRegisterToFirebase(navController: NavController) {
                 passwordConfirmation = it
                 confirmPasswordError.value = !isValidPassword(it)
             },
-            label = { Text(text = stringResource(id= R.string.firebase_confirm_password)) },
+            label = { Text(text = stringResource(id= R.string.firebase_confirm_password),color = Color.Black) },
             visualTransformation = PasswordVisualTransformation(),
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             isError = passwordError.value,
             modifier = Modifier.fillMaxWidth()
@@ -223,10 +230,10 @@ fun performSignUp(
                         "username" to username
                     )
 
-                    // Save the username in Firestore under the 'users' collection
-                    FirebaseFirestore.getInstance().collection("users")
-                        .document(userId)
-                        .set(userData)
+                    val firestore = FirebaseFirestore.getInstance()
+
+                    // Check if the 'users' collection exists before writing (optional)
+                    firestore.collection("users").document(userId).set(userData)
                         .addOnSuccessListener {
                             val successMessage = oContexto.getString(R.string.firebase_registration_success)
                             Log.d("SignUpSuccess", successMessage)
@@ -234,31 +241,32 @@ fun performSignUp(
                             navController.navigate(Destino.Ecra03.route)
                         }
                         .addOnFailureListener { e ->
-                            Log.d("SignUpFailed", "Error saving username: ", e)
-                            Toast.makeText(oContexto, "Error saving username", Toast.LENGTH_SHORT).show()
+                            Log.e("SignUpFailed", "Error saving user data: ", e)
+                            Toast.makeText(oContexto, "Error saving user data", Toast.LENGTH_SHORT).show()
                         }
                 } else {
-                    val aMensagem = oContexto.getString(R.string.firebase_email_password_login_error)
-                    Log.d("SignUpFailed", aMensagem, task.exception)
-                    Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
+                    val errorMessage = oContexto.getString(R.string.firebase_email_password_login_error)
+                    Log.e("SignUpFailed", errorMessage, task.exception)
+                    Toast.makeText(oContexto, errorMessage, Toast.LENGTH_SHORT).show()
                 }
             }
     } else {
         if (!isEmailValid) {
-            val aMensagem = oContexto.getString(R.string.firebase_invalid_email)
-            Log.d("SignUpFailed", aMensagem)
-            Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
+            val errorMessage = oContexto.getString(R.string.firebase_invalid_email)
+            Log.e("ValidationError", errorMessage)
+            Toast.makeText(oContexto, errorMessage, Toast.LENGTH_SHORT).show()
         } else if (!isPasswordValid) {
-            val aMensagem = oContexto.getString(R.string.firebase_invalid_password)
-            Log.d("SignUpFailed", aMensagem)
-            Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
+            val errorMessage = oContexto.getString(R.string.firebase_invalid_password)
+            Log.e("ValidationError", errorMessage)
+            Toast.makeText(oContexto, errorMessage, Toast.LENGTH_SHORT).show()
         } else if (!isConfirmPasswordValid) {
-            val aMensagem = oContexto.getString(R.string.firebase_invalid_password_confirmation)
-            Log.d("SignUpFailed", aMensagem)
-            Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
+            val errorMessage = oContexto.getString(R.string.firebase_invalid_password_confirmation)
+            Log.e("ValidationError", errorMessage)
+            Toast.makeText(oContexto, errorMessage, Toast.LENGTH_SHORT).show()
         }
     }
 }
+
 
 private fun isValidEmail(email: String): Boolean {
     return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()

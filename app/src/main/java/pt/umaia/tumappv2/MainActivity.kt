@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -78,9 +79,12 @@ fun ProgramaPrincipal() {
 
 
     Scaffold(
+        modifier = Modifier.background(Color.White),
         bottomBar = { BottomNavigationBar(navController = navController, appItems = Destino.toList) },
             content = { padding ->
-                Box(modifier = Modifier.padding(padding)) {
+                Box(modifier = Modifier
+                    .padding(padding)
+                    .background(Color.White)) {
                     AppNavigation(navController = navController)
             }
         }

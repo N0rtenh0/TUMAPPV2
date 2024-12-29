@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,6 +78,7 @@ fun EcraLoginFirebase(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(16.dp)
     ) {
         Text(
@@ -97,7 +99,8 @@ fun EcraLoginFirebase(navController: NavController) {
                 email = it
                 emailError.value = !isValidEmail(it)
             },
-            label = { Text(text = stringResource(id = R.string.firebase_enter_email)) },
+            label = { Text(text = stringResource(id = R.string.firebase_enter_email),color = Color.Black) },
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
             isError = emailError.value,
             modifier = Modifier.fillMaxWidth()
@@ -120,7 +123,8 @@ fun EcraLoginFirebase(navController: NavController) {
                 password = it
                 passwordError.value = !isValidPassword(it)
             },
-            label = { Text(text = stringResource(id= R.string.firebase_enter_password)) },
+            label = { Text(text = stringResource(id= R.string.firebase_enter_password),color = Color.Black) },
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             isError = passwordError.value,
@@ -149,13 +153,13 @@ fun EcraLoginFirebase(navController: NavController) {
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = stringResource(id = R.string.firebase_no_account_question))
+            Text(text = stringResource(id = R.string.firebase_no_account_question),color = Color.Black)
             TextButton(onClick = { navController.navigate(Destino.EcraRegisterToFirebase.route) }) {
                 Text(text = stringResource(id = R.string.firebase_sign_up), color = Color.Blue)
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(stringResource(id=R.string.firebase_or))
+        Text(stringResource(id=R.string.firebase_or),color = Color.Black)
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = { performGoogleAuthentication(launcher, oContexto) },

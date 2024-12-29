@@ -10,7 +10,7 @@ O aplicativo permite aos usuários visualizar detalhes das apresentações, incl
 ## Funcionalidades
 
 - Exibição das próximas apresentações da TUM.
-- Indicação clara do local, data, e status de pagamento.
+- Indicação clara do local, data, e que tipo de atuação é
 - **Sistema de Login**: Autenticação de usuários via Firebase Authentication ou Google Sign-In.
 - Interface amigável e responsiva.
 

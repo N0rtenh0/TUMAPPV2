@@ -6,10 +6,10 @@
     <string name="firebase_enter_valid_email">Introduza um Email Válido</string>
     <string name="firebase_enter_password">Introduza Sua Password</string>
     <string name="firebase_password_min6chars">Introduza no minimo 6 characteres</string>
-    <string name="firebase_no_account_question">Firebase Question?</string>
+    <string name="firebase_no_account_question">Sem conta no Firebase?</string>
     <string name="firebase_sign_up">Sign in with firebase</string>
     <string name="firebase_or">Or</string>
-    <string name="firebase_continue_with_google">Continue with google</string>
+    <string name="firebase_continue_with_google">Continuar com o google</string>
     <string name="google_client_id">927126794331-09ursd7cggqqbkhfn24tbu6soqvjo4a2.apps.googleusercontent.com</string>
     <string name="firebase_confirm_password">Confirma sua Password</string>
     <string name="firebase_login_ok">Login efetuado</string>
@@ -17,8 +17,9 @@
     <string name="firebase_invalid_email">Email Inválido</string>
     <string name="firebase_invalid_password">Password Inválida</string>
     <string name="firebase_invalid_password_confirmation">Confirmação de Password Inválida</string>
-    <string name="user_logged_in">User is logged in</string>
+    <string name="user_logged_in">Autenticação com Sucesso</string>
     <string name="ecra03">Lista</string>
-    <string name="ecra04">Add to list</string>
+    <string name="ecra04">Adicionar a lista</string>
     <string name="firebase_registration_success">Registro com Sucesso</string>
+    <string name="firebase_register_title">Registo</string>
 </resources>

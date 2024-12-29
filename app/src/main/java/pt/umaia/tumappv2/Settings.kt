@@ -8,6 +8,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,7 @@ fun EcraSettings(navController: NavController) {
                     if (document != null && document.exists()) {
                         username.value = document.getString("username") ?: "No username"
                     } else {
-                        username.value = "Document not found"
+                        username.value = "User não encontrado"
                     }
                 }
                 .addOnFailureListener { e ->
@@ -101,29 +102,32 @@ fun EcraSettings(navController: NavController) {
 
     Scaffold { it: PaddingValues ->
         Box(modifier = Modifier
+            .background(Color.White)
             .fillMaxSize()
             .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .background(Color.White),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Logged in as: ${username.value}")
+                Text(text = "Logged in as: ${username.value}",color = Color.Black)
 
                 // Username TextField
                 OutlinedTextField(
                     value = newUsername.value,
                     onValueChange = { newUsername.value = it },
-                    label = { Text("Introduza seu novo Nick") },
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black),
+                    label = { Text("Introduza seu novo Nick",color = Color.Black) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 )
 
                 // Save Username Button
                 Button(
-                    onClick = { saveUsernameToFirestore(currentUser, newUsername.value, oContexto) },
+                    onClick = { saveUsernameToFirestore(currentUser, newUsername.value, oContexto, username) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
@@ -131,6 +135,7 @@ fun EcraSettings(navController: NavController) {
                 ) {
                     Text("Seu novo Nick", color = Color.White)
                 }
+
 
                 // Logout and Delete Account Buttons (same as before)
                 Spacer(modifier = Modifier.weight(1f))
@@ -186,7 +191,7 @@ fun EcraSettings(navController: NavController) {
     }
 }
 
-private fun saveUsernameToFirestore(user: FirebaseUser?, newUsername: String, context: Context) {
+private fun saveUsernameToFirestore(user: FirebaseUser?, newUsername: String, context: Context, usernameState: MutableState<String>) {
     user?.let {
         val db = FirebaseFirestore.getInstance()
         val userRef = db.collection("users").document(it.uid)
@@ -194,6 +199,8 @@ private fun saveUsernameToFirestore(user: FirebaseUser?, newUsername: String, co
         // Update the username in Firestore
         userRef.update("username", newUsername)
             .addOnSuccessListener {
+                // Update the username in the state to trigger recomposition
+                usernameState.value = newUsername
                 logAndToast(context, "info", "Username updated successfully")
             }
             .addOnFailureListener { e ->
