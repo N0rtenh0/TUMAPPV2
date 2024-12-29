@@ -50,31 +50,20 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
 fun EcraRegisterToFirebase(navController: NavController) {
     val oContexto = LocalContext.current
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirmation by remember { mutableStateOf("") }
     val emailError = remember { mutableStateOf(false) }
     val passwordError = remember { mutableStateOf(false) }
     val confirmPasswordError = remember { mutableStateOf(false) }
-    val launcher = rememberFirebaseAuthLauncher(
-        onAuthComplete = { result ->
-            val aMensagem = oContexto.getString(R.string.firebase_login_success)
-            Log.d("SignInSuccess", aMensagem)
-            Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
-            navController.navigate(Destino.Ecra03.route)
-        },
-        onAuthError = { error ->
-            val aMensagem = "signInWithGoogle:failure$error"
-            Log.w("SignInFail", aMensagem)
-            Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
-        }
-    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -155,7 +144,18 @@ fun EcraRegisterToFirebase(navController: NavController) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
-            onClick = { performSignUp(oContexto, email, password, passwordConfirmation, emailError, passwordError, confirmPasswordError, navController) },
+            onClick = {
+                performSignUp(
+                    oContexto, email, password, passwordConfirmation,
+                    emailError, passwordError, confirmPasswordError, navController,
+                    onLoginSuccessful = {
+                        // This will be triggered after successful registration
+                        val successMessage = oContexto.getString(R.string.firebase_registration_success)
+                        Log.d("SignUpSuccess", successMessage)
+                        Toast.makeText(oContexto, successMessage, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Register")
@@ -183,6 +183,11 @@ private fun rememberFirebaseAuthLauncher(
         }
     }
 }
+
+
+val firstNameList = listOf("Aqua","Blue","Cyan","Denim","Emerald","Fuchsia","Green","Honey","Ivory","Jade","Khaki","Lavender","Magenta","Navy","Olive","Purple","Quartz","Red","Silver","Turquoise","Umber","Violet","White","Xanadu","Yellow","Zaffre")
+val lastNameList = listOf("Apple", "Banana", "Cherry", "Date", "Elderberry", "Fig", "Grape", "Honeydew", "Indian Fig", "Jackfruit", "Kiwi", "Lemon", "Mango", "Nectarine", "Orange", "Papaya", "Quince", "Raspberry", "Strawberry", "Tangerine", "Ugli fruit", "Voavanga", "Watermelon", "Xigua", "Yumberry", "Zucchini") // List of first names
+
 fun performSignUp(
     oContexto: Context,
     email: String,
@@ -191,7 +196,8 @@ fun performSignUp(
     emailErrorState: MutableState<Boolean>,
     passwordErrorState: MutableState<Boolean>,
     confirmPasswordErrorState: MutableState<Boolean>,
-    navController: NavController
+    navController: NavController,
+    onLoginSuccessful: () -> Unit
 ) {
     val isEmailValid = isValidEmail(email)
     val isPasswordValid = isValidPassword(password)
@@ -199,16 +205,38 @@ fun performSignUp(
     emailErrorState.value = !isEmailValid
     passwordErrorState.value = !isPasswordValid
     confirmPasswordErrorState.value = !isConfirmPasswordValid
+
     if (isEmailValid && isPasswordValid && isConfirmPasswordValid) {
         val auth = Firebase.auth
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // If sign in fails, display a message to the user.
-                    val aMensagem = oContexto.getString(R.string.firebase_login_ok)
-                    Log.d("SignUpSuccess", aMensagem)
-                    Toast.makeText(oContexto, aMensagem, Toast.LENGTH_SHORT).show()
-                    navController.navigate(Destino.Ecra03.route)
+                    // If sign up is successful, assign a random username from both lists
+                    val user = Firebase.auth.currentUser
+                    val firstName = firstNameList.random() // Get a random first name from the list
+                    val lastName = lastNameList.random() // Get a random last name from the list
+                    val username = "$firstName$lastName" // Combine first and last names
+                    val userId = user?.uid ?: return@addOnCompleteListener
+
+                    val userData = hashMapOf(
+                        "email" to email,
+                        "username" to username
+                    )
+
+                    // Save the username in Firestore under the 'users' collection
+                    FirebaseFirestore.getInstance().collection("users")
+                        .document(userId)
+                        .set(userData)
+                        .addOnSuccessListener {
+                            val successMessage = oContexto.getString(R.string.firebase_registration_success)
+                            Log.d("SignUpSuccess", successMessage)
+                            Toast.makeText(oContexto, successMessage, Toast.LENGTH_SHORT).show()
+                            navController.navigate(Destino.Ecra03.route)
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("SignUpFailed", "Error saving username: ", e)
+                            Toast.makeText(oContexto, "Error saving username", Toast.LENGTH_SHORT).show()
+                        }
                 } else {
                     val aMensagem = oContexto.getString(R.string.firebase_email_password_login_error)
                     Log.d("SignUpFailed", aMensagem, task.exception)

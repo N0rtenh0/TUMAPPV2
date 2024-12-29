@@ -59,7 +59,7 @@ import androidx.compose.material3.Icon
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // enableEdgeToEdge()
         setContent {
             TUMAPPV2Theme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -75,25 +75,21 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ProgramaPrincipal() {
     val navController = rememberNavController()
+
+
     Scaffold(
-        bottomBar = {
-            BottomNavigationBar(
-                navController = navController,
-                appItems = Destino.toList
-            )
-        },
-        content = { padding ->
-            Box(modifier = Modifier.padding(padding)) {
-                AppNavigation(navController = navController)
+        bottomBar = { BottomNavigationBar(navController = navController, appItems = Destino.toList) },
+            content = { padding ->
+                Box(modifier = Modifier.padding(padding)) {
+                    AppNavigation(navController = navController)
             }
         }
     )
 }
 
 
-
 @Composable
-fun AppNavigation(navController: NavHostController) {
+fun AppNavigation(navController: NavHostController, ) {
 
     // ECRA 04
     val Dia = rememberSaveable { mutableStateOf("") }
@@ -115,7 +111,6 @@ fun AppNavigation(navController: NavHostController) {
         }
 
         composable(Destino.Ecra03.route) {
-
             Ecra03(listA)
         }
 
@@ -127,9 +122,7 @@ fun AppNavigation(navController: NavHostController) {
                 selectedOption = Op1,
                 option1Text = op1Text,
                 option2Text = op2Text,
-                onClick = { value1, value2 , value3->
-                    listA.value += "\n Dia: ${Dia.value}, Local: ${Local.value}, Opção: ${Op1.value}"
-                }
+
             )
         }
 

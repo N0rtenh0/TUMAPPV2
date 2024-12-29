@@ -30,13 +30,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
+
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +55,10 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.auth.FirebaseAuth
 
 
 @Composable
@@ -64,6 +67,26 @@ fun EcraSettings(navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val authMethod = getCurrentUserAuthMethod(currentUser)
     val showReauthenPassword = remember { mutableStateOf(false) }
+    val newUsername = remember { mutableStateOf("") }  // State to hold the new username
+    val username = remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users").document(userId).get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        username.value = document.getString("username") ?: "No username"
+                    } else {
+                        username.value = "Document not found"
+                    }
+                }
+                .addOnFailureListener { e ->
+                    username.value = "Error: ${e.message}"
+                }
+        }
+    }
 
     // For Google Authentication
     val launcher = rememberFirebaseAuthLauncher(
@@ -76,8 +99,7 @@ fun EcraSettings(navController: NavController) {
         }
     )
 
-
-    Scaffold() {it: PaddingValues ->
+    Scaffold { it: PaddingValues ->
         Box(modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
@@ -89,11 +111,28 @@ fun EcraSettings(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                Text(text = "Logged in as: ${username.value}")
 
+                // Username TextField
+                OutlinedTextField(
+                    value = newUsername.value,
+                    onValueChange = { newUsername.value = it },
+                    label = { Text("Introduza seu novo Nick") },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                )
 
-                Text(text = stringResource(R.string.user_logged_in))
+                // Save Username Button
+                Button(
+                    onClick = { saveUsernameToFirestore(currentUser, newUsername.value, oContexto) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
+                ) {
+                    Text("Seu novo Nick", color = Color.White)
+                }
 
-                // This spacer will push the buttons to the bottom as it takes up all available space
+                // Logout and Delete Account Buttons (same as before)
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
@@ -111,17 +150,13 @@ fun EcraSettings(navController: NavController) {
                         when (authMethod) {
                             AuthMethod.EMAIL -> {
                                 println("User signed in using Email")
-                                // Handle email authenticated user
                                 showReauthenPassword.value = true
                             }
                             AuthMethod.GOOGLE -> {
                                 println("User signed in using Google")
-                                // Handle Google authenticated user
-                                performGoogleReauthentication(launcher, oContexto)
                             }
                             AuthMethod.NONE -> {
                                 println("No user is signed in")
-                                // Handle case where no user is signed in
                             }
                         }
                     },
@@ -138,19 +173,32 @@ fun EcraSettings(navController: NavController) {
                 ReauthenticationEmailPassWord(
                     showDialog = showReauthenPassword,
                     onReauthenticated = {
-                        // Handle successful reauthentication, e.g., navigate, show message
                         logAndToast(oContexto, "info", "reauthentication successful")
                         deleteAccount(oContexto, currentUser, navController)
                     },
                     onError = { errorMsg ->
-                        // Handle error, e.g., show error message
                         logAndToast(oContexto, "error", "reauthentication error:$errorMsg")
                         showReauthenPassword.value = false
                     }
                 )
             }
-
         }
+    }
+}
+
+private fun saveUsernameToFirestore(user: FirebaseUser?, newUsername: String, context: Context) {
+    user?.let {
+        val db = FirebaseFirestore.getInstance()
+        val userRef = db.collection("users").document(it.uid)
+
+        // Update the username in Firestore
+        userRef.update("username", newUsername)
+            .addOnSuccessListener {
+                logAndToast(context, "info", "Username updated successfully")
+            }
+            .addOnFailureListener { e ->
+                logAndToast(context, "error", "Error updating username: ${e.message}")
+            }
     }
 }
 

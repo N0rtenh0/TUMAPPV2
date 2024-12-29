@@ -20,4 +20,5 @@
     <string name="user_logged_in">User is logged in</string>
     <string name="ecra03">Lista</string>
     <string name="ecra04">Add to list</string>
+    <string name="firebase_registration_success">Registro com Sucesso</string>
 </resources>

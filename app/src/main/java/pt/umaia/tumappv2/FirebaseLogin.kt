@@ -197,25 +197,15 @@ private fun performLogin(
 
 fun performGoogleAuthentication(launcher: ManagedActivityResultLauncher<Intent, ActivityResult>, context: Context) {
     val token = context.getString(R.string.google_client_id)
-    val gso =
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(token)
-            .requestEmail()
-            .build()
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestIdToken(token)
+        .requestEmail()
+        .build()
+
     val googleSignInClient = GoogleSignIn.getClient(context, gso)
     launcher.launch(googleSignInClient.signInIntent)
 }
-// FIXME: this is a duplicated function with a different name, it should be merged into a single function
-fun performGoogleReauthentication(launcher: ManagedActivityResultLauncher<Intent, ActivityResult>, context: Context) {
-    val token = context.getString(R.string.google_client_id)
-    val gso =
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(token)
-            .requestEmail()
-            .build()
-    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-    launcher.launch(googleSignInClient.signInIntent)
-}
+
 
 @Composable
 private fun rememberFirebaseAuthLauncher(
