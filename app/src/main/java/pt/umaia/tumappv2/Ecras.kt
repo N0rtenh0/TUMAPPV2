@@ -1,6 +1,7 @@
 package pt.umaia.tumappv2
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,40 +30,36 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-
-
+import com.google.firebase.auth.FirebaseAuth
 
 
 @Composable
 fun Ecra03(
-    listA: MutableState<String>
+    listA: MutableState<String>,
+    username: String // Use the passed username here
 ) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    val userId = "teste" // Replace with actual user ID
-    val username = remember { mutableStateOf("") } // To store the username
-    val isGoing = remember { mutableStateOf(false) }
-    val goingCount = remember { mutableStateOf(0) }
+    val isGoing = remember { mutableStateOf(false) } // Estado para controlar presença
+    var currentUsername by remember { mutableStateOf(username) } // Local state for username
+    val eventReactions = remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) } // Estado para controlar as reações por evento
+    val eventParticipants = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) } // Estado para armazenar os participantes
 
-    // Fetch the username from Firestore
-    LaunchedEffect(userId) {
-        db.collection("users")
-            .whereEqualTo("userId", userId)
-            .get()
-            .addOnSuccessListener { result ->
-                val userDoc = result.documents.firstOrNull()
-                if (userDoc != null) {
-                    val name = userDoc.getString("username") ?: "Unknown User"
-                    username.value = name
+    // Função para atualizar dados
+    fun refreshData() {
+        // Re-fetch the username from Firestore (if needed)
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        userId?.let {
+            db.collection("users").document(it).get()
+                .addOnSuccessListener { document ->
+                    currentUsername = document.getString("username") ?: "Unknown User"
                 }
-            }
-            .addOnFailureListener {
-                Toast.makeText(context, "Erro ao carregar o nome de usuário.", Toast.LENGTH_SHORT).show()
-            }
-    }
+                .addOnFailureListener {
+                    Toast.makeText(context, "Erro ao carregar o nome de usuário.", Toast.LENGTH_SHORT).show()
+                }
+        }
 
-    // Fetch Firestore data on screen load
-    LaunchedEffect(Unit) {
+        // Re-fetch events data
         db.collection("atuacoes")
             .get()
             .addOnSuccessListener { result ->
@@ -70,82 +67,163 @@ fun Ecra03(
                     val dia = doc.getString("Dia") ?: "N/A"
                     val local = doc.getString("Local") ?: "N/A"
                     val tipo = doc.getString("Tipo de atuação") ?: "N/A"
-                    // Return a string representing each event's details
-                    "$dia - $local - $tipo"
+                    val eventKey = "$dia - $local - $tipo"
+                    eventKey
                 }
                 // Update listA with the events
                 listA.value = events.joinToString("\n") { it }
+
+                // Fetch participants for each event
+                events.forEach { event ->
+                    db.collection("reactions")
+                        .whereEqualTo("event", event)
+                        .get()
+                        .addOnSuccessListener { snapshot ->
+                            val participants = snapshot.documents.mapNotNull { doc ->
+                                doc.getString("username")
+                            }
+                            eventParticipants.value = eventParticipants.value.toMutableMap().apply {
+                                put(event, participants)
+                            }
+                        }
+                }
             }
             .addOnFailureListener {
                 listA.value = "Erro ao carregar dados."
             }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .wrapContentSize(Alignment.Center)
+            .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(id = R.string.ecra03),
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray,
+        Column(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .background(Color.White),
-            textAlign = TextAlign.Center,
-            fontSize = 18.sp
-        )
+                .fillMaxSize()
+                .wrapContentSize(Alignment.Center)
+        ) {
+            Text(
+                text = stringResource(id = R.string.ecra03),
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .background(Color.White),
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Olá, ${username.value}",
-            fontSize = 16.sp,
-            color = Color.Black,
-            modifier = Modifier.padding(8.dp)
-        )
+            // Display the updated username
+            Text(
+                text = "Olá, $currentUsername", // Directly use the updated username
+                fontSize = 16.sp,
+                color = Color.Black,
+                modifier = Modifier.padding(8.dp)
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Iterate over each event and create a button for it
-        val eventsList = listA.value.split("\n").filter { it.isNotBlank() }
-        eventsList.forEach { event ->
-            Button(
-                onClick = {
-                    // Logic for confirming or canceling presence can be added here
-                    val eventData = mapOf(
-                        "username" to username.value, // Use the username here
-                        "timestamp" to System.currentTimeMillis()
-                    )
+            // Iterate over each event and create a button for it
+            val eventsList = listA.value.split("\n").filter { it.isNotBlank() }
+            eventsList.forEach { event ->
+                val hasConfirmed = eventReactions.value[event] ?: false
+                val participants = eventParticipants.value[event] ?: emptyList()
 
-                    // Add event reaction to Firestore
-                    db.collection("reactions")
-                        .add(eventData)
-                        .addOnSuccessListener {
-                            goingCount.value++
-                            Toast.makeText(context, "Confirmado para o evento: $event", Toast.LENGTH_SHORT).show()
+                Button(
+                    onClick = {
+                        if (hasConfirmed) {
+                            // Remove reaction if confirmed
+                            db.collection("reactions")
+                                .whereEqualTo("username", currentUsername)
+                                .whereEqualTo("event", event)
+                                .get()
+                                .addOnSuccessListener { snapshot ->
+                                    val documentReference = snapshot.documents.firstOrNull()?.reference
+                                    documentReference?.delete()
+                                        ?.addOnSuccessListener {
+                                            // Atualiza a lista de participantes no evento
+                                            eventParticipants.value = eventParticipants.value.toMutableMap().apply {
+                                                val updatedParticipants = participants.filter { it != currentUsername }
+                                                put(event, updatedParticipants)
+                                            }
+
+                                            // Atualiza a reação para 'false' e remove o nome da lista de participantes
+                                            eventReactions.value = eventReactions.value.toMutableMap().apply {
+                                                put(event, false)
+                                            }
+                                            Toast.makeText(context, "Presença cancelada para o evento: $event", Toast.LENGTH_SHORT).show()
+                                        }
+                                        ?.addOnFailureListener {
+                                            Toast.makeText(context, "Erro ao cancelar presença.", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
+                        } else {
+                            // Add reaction if not confirmed
+                            val eventData = mapOf(
+                                "username" to currentUsername,
+                                "event" to event,
+                                "timestamp" to System.currentTimeMillis()
+                            )
+
+                            db.collection("reactions")
+                                .add(eventData)
+                                .addOnSuccessListener {
+                                    // Atualiza a lista de participantes no evento
+                                    eventParticipants.value = eventParticipants.value.toMutableMap().apply {
+                                        val updatedParticipants = participants + currentUsername
+                                        put(event, updatedParticipants)
+                                    }
+
+                                    // Atualiza a reação para 'true'
+                                    eventReactions.value = eventReactions.value.toMutableMap().apply {
+                                        put(event, true)
+                                    }
+
+                                    Toast.makeText(context, "Confirmado para o evento: $event", Toast.LENGTH_SHORT).show()
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(context, "Erro ao confirmar presença para o evento.", Toast.LENGTH_SHORT).show()
+                                }
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(context, "Erro ao confirmar presença para o evento.", Toast.LENGTH_SHORT).show()
-                        }
+                    }
+                ) {
+                    Text(text = if (hasConfirmed) "Cancelar presença para $event" else "Confirmar presença para $event")
                 }
-            ) {
-                Text(text = "Confirmar Presença para $event")
+
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Display participants for this event
+                Text(
+                    text = "Participantes: ${participants.joinToString(", ")}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Número de confirmações: ${goingCount.value}",
-            fontSize = 16.sp,
-            color = Color.Black
-        )
+        // Refresh Button at the top-right corner
+        Button(
+            onClick = { refreshData() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Text(text = "Refresh")
+        }
     }
 }
+
+
+
+
 
 
 

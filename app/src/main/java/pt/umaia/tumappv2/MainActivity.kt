@@ -35,26 +35,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import pt.umaia.tumappv2.ui.theme.TUMAPPV2Theme
 import androidx.compose.material3.Icon
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 
 class MainActivity : ComponentActivity() {
@@ -76,24 +61,38 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ProgramaPrincipal() {
     val navController = rememberNavController()
+    var username by remember { mutableStateOf("Unknown User") }
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
 
+    LaunchedEffect(userId) {
+        userId?.let {
+            FirebaseFirestore.getInstance().collection("users").document(it).get()
+                .addOnSuccessListener { document ->
+                    username = document.getString("username") ?: "Unknown User"
+                }
+                .addOnFailureListener {
+                    username = "Error fetching username"
+                }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.background(Color.White),
         bottomBar = { BottomNavigationBar(navController = navController, appItems = Destino.toList) },
-            content = { padding ->
-                Box(modifier = Modifier
-                    .padding(padding)
-                    .background(Color.White)) {
-                    AppNavigation(navController = navController)
+        content = { padding ->
+            Box(modifier = Modifier
+                .padding(padding)
+                .background(Color.White)) {
+                AppNavigation(navController = navController, username = username)
             }
         }
     )
 }
 
 
+
 @Composable
-fun AppNavigation(navController: NavHostController, ) {
+fun AppNavigation(navController: NavHostController, username: String) {
 
     // ECRA 04
     val Dia = rememberSaveable { mutableStateOf("") }
@@ -108,14 +107,14 @@ fun AppNavigation(navController: NavHostController, ) {
             EcraLoginFirebase(navController)
         }
         composable(Destino.EcraRegisterToFirebase.route) {
-            EcraRegisterToFirebase(navController)
+            EcraRegisterToFirebase(navController,)
         }
         composable(Destino.EcraSettings.route) {
             EcraSettings(navController)
         }
 
         composable(Destino.Ecra03.route) {
-            Ecra03(listA)
+            Ecra03(listA, username = username)
         }
 
         composable(Destino.Ecra04.route) {
@@ -126,12 +125,8 @@ fun AppNavigation(navController: NavHostController, ) {
                 selectedOption = Op1,
                 option1Text = op1Text,
                 option2Text = op2Text,
-
-            )
+                )
         }
-
-
-
     }
 }
 
