@@ -218,11 +218,10 @@ fun performSignUp(
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // If sign up is successful, assign a random username from both lists
                     val user = Firebase.auth.currentUser
-                    val firstName = firstNameList.random() // Get a random first name from the list
-                    val lastName = lastNameList.random() // Get a random last name from the list
-                    val username = "$firstName$lastName" // Combine first and last names
+                    val firstName = firstNameList.random() // Get a random first name
+                    val lastName = lastNameList.random()  // Get a random last name
+                    val username = "$firstName$lastName"
                     val userId = user?.uid ?: return@addOnCompleteListener
 
                     val userData = hashMapOf(
@@ -231,18 +230,32 @@ fun performSignUp(
                     )
 
                     val firestore = FirebaseFirestore.getInstance()
+                    val usersCollection = firestore.collection("users")
 
-                    // Check if the 'users' collection exists before writing (optional)
-                    firestore.collection("users").document(userId).set(userData)
-                        .addOnSuccessListener {
-                            val successMessage = oContexto.getString(R.string.firebase_registration_success)
-                            Log.d("SignUpSuccess", successMessage)
-                            Toast.makeText(oContexto, successMessage, Toast.LENGTH_SHORT).show()
-                            navController.navigate(Destino.Ecra03.route)
+                    // Check if the 'users' collection has any documents
+                    usersCollection.get()
+                        .addOnSuccessListener { documents ->
+                            if (documents.isEmpty) {
+                                Log.d("FirestoreCheck", "'users' collection does not exist. Creating...")
+                            } else {
+                                Log.d("FirestoreCheck", "'users' collection exists.")
+                            }
+
+                            // Add user data to Firestore
+                            usersCollection.document(userId).set(userData)
+                                .addOnSuccessListener {
+                                    val successMessage = oContexto.getString(R.string.firebase_registration_success)
+                                    Log.d("SignUpSuccess", successMessage)
+                                    Toast.makeText(oContexto, successMessage, Toast.LENGTH_SHORT).show()
+                                    navController.navigate(Destino.Ecra03.route)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("SignUpFailed", "Error saving user data: ", e)
+                                    Toast.makeText(oContexto, "Error saving user data", Toast.LENGTH_SHORT).show()
+                                }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("SignUpFailed", "Error saving user data: ", e)
-                            Toast.makeText(oContexto, "Error saving user data", Toast.LENGTH_SHORT).show()
+                            Log.e("FirestoreCheck", "Error checking 'users' collection: ", e)
                         }
                 } else {
                     val errorMessage = oContexto.getString(R.string.firebase_email_password_login_error)
@@ -266,6 +279,7 @@ fun performSignUp(
         }
     }
 }
+
 
 
 private fun isValidEmail(email: String): Boolean {

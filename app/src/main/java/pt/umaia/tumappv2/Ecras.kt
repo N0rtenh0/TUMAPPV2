@@ -36,18 +36,18 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun Ecra03(
     listA: MutableState<String>,
-    username: String // Nome do usuário passado
+    username: String // Use the passed username here
 ) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    val isGoing = remember { mutableStateOf(false) } // Estado para presença
-    var currentUsername by remember { mutableStateOf(username) } // Estado local para o nome do usuário
-    val eventReactions = remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) } // Reações por evento
-    val eventParticipants = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) } // Participantes por evento
+    val isGoing = remember { mutableStateOf(false) } // Estado para controlar presença
+    var currentUsername by remember { mutableStateOf(username) } // Local state for username
+    val eventReactions = remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) } // Estado para controlar as reações por evento
+    val eventParticipants = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) } // Estado para armazenar os participantes
 
     // Função para atualizar dados
     fun refreshData() {
-        // Carregar o nome do usuário do Firestore (se necessário)
+        // Re-fetch the username from Firestore (if needed)
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         userId?.let {
             db.collection("users").document(it).get()
@@ -59,22 +59,7 @@ fun Ecra03(
                 }
         }
 
-        // Buscar reações do usuário para eventos
-        db.collection("reactions")
-            .whereEqualTo("username", currentUsername)
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val reactionsMap = snapshot.documents.associate { doc ->
-                    val event = doc.getString("event") ?: ""
-                    event to true // Confirmado para este evento
-                }
-                eventReactions.value = reactionsMap
-            }
-            .addOnFailureListener {
-                Toast.makeText(context, "Erro ao carregar reações.", Toast.LENGTH_SHORT).show()
-            }
-
-        // Buscar lista de eventos
+        // Re-fetch events data
         db.collection("atuacoes")
             .get()
             .addOnSuccessListener { result ->
@@ -85,10 +70,10 @@ fun Ecra03(
                     val eventKey = "$dia - $local - $tipo"
                     eventKey
                 }
-                // Atualizar lista de eventos
+                // Update listA with the events
                 listA.value = events.joinToString("\n") { it }
 
-                // Buscar participantes de cada evento
+                // Fetch participants for each event
                 events.forEach { event ->
                     db.collection("reactions")
                         .whereEqualTo("event", event)
@@ -99,6 +84,14 @@ fun Ecra03(
                             }
                             eventParticipants.value = eventParticipants.value.toMutableMap().apply {
                                 put(event, participants)
+                            }
+
+                            // Check if the current user has already reacted to the event
+                            val hasReacted = snapshot.documents.any { doc ->
+                                doc.getString("username") == currentUsername
+                            }
+                            eventReactions.value = eventReactions.value.toMutableMap().apply {
+                                put(event, hasReacted)
                             }
                         }
                 }
@@ -131,9 +124,9 @@ fun Ecra03(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Exibir nome do usuário
+            // Display the updated username
             Text(
-                text = "Olá, $currentUsername",
+                text = "Olá, $currentUsername", // Directly use the updated username
                 fontSize = 16.sp,
                 color = Color.Black,
                 modifier = Modifier.padding(8.dp)
@@ -141,7 +134,7 @@ fun Ecra03(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Exibir eventos
+            // Iterate over each event and create a button for it
             val eventsList = listA.value.split("\n").filter { it.isNotBlank() }
             eventsList.forEach { event ->
                 val hasConfirmed = eventReactions.value[event] ?: false
@@ -150,7 +143,7 @@ fun Ecra03(
                 Button(
                     onClick = {
                         if (hasConfirmed) {
-                            // Cancelar presença
+                            // Remove reaction if confirmed
                             db.collection("reactions")
                                 .whereEqualTo("username", currentUsername)
                                 .whereEqualTo("event", event)
@@ -159,11 +152,15 @@ fun Ecra03(
                                     val documentReference = snapshot.documents.firstOrNull()?.reference
                                     documentReference?.delete()
                                         ?.addOnSuccessListener {
+                                            // Atualiza a lista de participantes no evento
+                                            eventParticipants.value = eventParticipants.value.toMutableMap().apply {
+                                                val updatedParticipants = participants.filter { it != currentUsername }
+                                                put(event, updatedParticipants)
+                                            }
+
+                                            // Atualiza a reação para 'false' e remove o nome da lista de participantes
                                             eventReactions.value = eventReactions.value.toMutableMap().apply {
                                                 put(event, false)
-                                            }
-                                            eventParticipants.value = eventParticipants.value.toMutableMap().apply {
-                                                put(event, participants.filter { it != currentUsername })
                                             }
                                             Toast.makeText(context, "Presença cancelada para o evento: $event", Toast.LENGTH_SHORT).show()
                                         }
@@ -172,7 +169,7 @@ fun Ecra03(
                                         }
                                 }
                         } else {
-                            // Confirmar presença
+                            // Add reaction if not confirmed
                             val eventData = mapOf(
                                 "username" to currentUsername,
                                 "event" to event,
@@ -182,12 +179,17 @@ fun Ecra03(
                             db.collection("reactions")
                                 .add(eventData)
                                 .addOnSuccessListener {
+                                    // Atualiza a lista de participantes no evento
+                                    eventParticipants.value = eventParticipants.value.toMutableMap().apply {
+                                        val updatedParticipants = participants + currentUsername
+                                        put(event, updatedParticipants)
+                                    }
+
+                                    // Atualiza a reação para 'true'
                                     eventReactions.value = eventReactions.value.toMutableMap().apply {
                                         put(event, true)
                                     }
-                                    eventParticipants.value = eventParticipants.value.toMutableMap().apply {
-                                        put(event, participants + currentUsername)
-                                    }
+
                                     Toast.makeText(context, "Confirmado para o evento: $event", Toast.LENGTH_SHORT).show()
                                 }
                                 .addOnFailureListener {
@@ -201,7 +203,7 @@ fun Ecra03(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Exibir participantes
+                // Display participants for this event
                 Text(
                     text = "Participantes: ${participants.joinToString(", ")}",
                     fontSize = 14.sp,
@@ -214,7 +216,7 @@ fun Ecra03(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // Botão de refresh
+        // Refresh Button at the top-right corner
         Button(
             onClick = { refreshData() },
             modifier = Modifier

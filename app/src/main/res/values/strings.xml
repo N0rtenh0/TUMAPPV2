@@ -18,7 +18,7 @@
     <string name="firebase_invalid_password">Password Inválida</string>
     <string name="firebase_invalid_password_confirmation">Confirmação de Password Inválida</string>
     <string name="user_logged_in">Autenticação com Sucesso</string>
-    <string name="ecra03">Lista</string>
+    <string name="ecra03">Atuações</string>
     <string name="ecra04">Adicionar a lista</string>
     <string name="firebase_registration_success">Registro com Sucesso</string>
     <string name="firebase_register_title">Registo</string>
